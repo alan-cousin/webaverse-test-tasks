@@ -55,7 +55,7 @@ text.wrapS = text.wrapT = THREE.RepeatWrapping;
 text.repeat.set( 40,1 );
 var material = new THREE.MeshPhongMaterial( { map: text} );
 
-var geometry = new THREE.BoxGeometry( 1000, 300, 10 );
+var geometry = new THREE.BoxGeometry( 1000, 600, 10 );
 var fence = new THREE.Mesh( geometry, material );
 fence.position.set(0,10,-500);
 fence.castShadow = true;
@@ -63,7 +63,7 @@ fence.receiveShadow = true;
 allObstacles.push(fence);
 scene.add(fence)
 
-var geometry = new THREE.BoxGeometry( 1000, 300, 10 );
+var geometry = new THREE.BoxGeometry( 1000, 600, 10 );
 var fence = new THREE.Mesh( geometry, material );
 fence.position.set(0,10,500);
 fence.castShadow = true;
@@ -71,7 +71,7 @@ fence.receiveShadow = true;
 allObstacles.push(fence);
 scene.add(fence)
 
-var geometry = new THREE.BoxGeometry( 10, 300, 1000 );
+var geometry = new THREE.BoxGeometry( 10, 600, 1000 );
 var fence = new THREE.Mesh( geometry, material );
 fence.position.set(-500,10,0);
 fence.castShadow = true;
@@ -79,7 +79,7 @@ fence.receiveShadow = true;
 allObstacles.push(fence);
 scene.add(fence)
 
-var geometry = new THREE.BoxGeometry( 10, 300, 1000 );
+var geometry = new THREE.BoxGeometry( 10, 600, 1000 );
 var fence = new THREE.Mesh( geometry, material );
 fence.position.set(500,10,0);
 fence.castShadow = true;
