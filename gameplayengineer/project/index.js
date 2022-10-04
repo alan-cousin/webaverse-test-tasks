@@ -61,7 +61,7 @@ const platformPoses = [{
 const moveSteps = [{
     "type": "keyDown",
     "target": "main",
-    "key": "a"
+    "key": "d"
   },
   {
     "type": "keyUp",
@@ -71,7 +71,7 @@ const moveSteps = [{
   {
     "type": "keyDown",
     "target": "main",
-    "key": "d"
+    "key": "a"
   },
   {
     "type": "keyUp",
