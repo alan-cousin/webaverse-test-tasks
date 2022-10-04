@@ -55,7 +55,7 @@ text.wrapS = text.wrapT = THREE.RepeatWrapping;
 text.repeat.set( 40,1 );
 var material = new THREE.MeshPhongMaterial( { map: text} );
 
-var geometry = new THREE.BoxGeometry( 1000, 300, 10 );
+var geometry = new THREE.BoxGeometry( 1000, 30, 10 );
 var fence = new THREE.Mesh( geometry, material );
 fence.position.set(0,10,-500);
 fence.castShadow = true;
@@ -63,7 +63,7 @@ fence.receiveShadow = true;
 allObstacles.push(fence);
 scene.add(fence)
 
-var geometry = new THREE.BoxGeometry( 1000, 300, 10 );
+var geometry = new THREE.BoxGeometry( 1000, 30, 10 );
 var fence = new THREE.Mesh( geometry, material );
 fence.position.set(0,10,500);
 fence.castShadow = true;
@@ -71,7 +71,7 @@ fence.receiveShadow = true;
 allObstacles.push(fence);
 scene.add(fence)
 
-var geometry = new THREE.BoxGeometry( 10, 300, 1000 );
+var geometry = new THREE.BoxGeometry( 10, 30, 1000 );
 var fence = new THREE.Mesh( geometry, material );
 fence.position.set(-500,10,0);
 fence.castShadow = true;
@@ -79,7 +79,7 @@ fence.receiveShadow = true;
 allObstacles.push(fence);
 scene.add(fence)
 
-var geometry = new THREE.BoxGeometry( 10, 300, 1000 );
+var geometry = new THREE.BoxGeometry( 10, 30, 1000 );
 var fence = new THREE.Mesh( geometry, material );
 fence.position.set(500,10,0);
 fence.castShadow = true;
@@ -192,27 +192,27 @@ var clock = new THREE.Clock(true);
 
 function keyboardCallBack() {
 	 var delta = clock.getDelta();
-	 var distanceMoved = 100 * delta;
+	 var distanceMoved = 50 * delta;
    var angleRotated = distanceMoved/player.size;
   
 	 if(keyboard.pressed("W")  && player.collisions.z != -1){
     player.translateZ(-distanceMoved);
-    player.velocity.setZ(-100);
+    player.velocity.setZ(-50);
     ball.rotateX(-angleRotated);
 	 }
 	 if(keyboard.pressed("A") && player.collisions.x != -1){
 	 	player.translateX(-distanceMoved);
-    player.velocity.setX(-100);
+    player.velocity.setX(-50);
     ball.rotateZ(angleRotated);
    }
    if(keyboard.pressed("S")  && player.collisions.z != 1){
       player.translateZ (distanceMoved);
-      player.velocity.setZ(100);
+      player.velocity.setZ(50);
       ball.rotateX(angleRotated);
 	 }
    if(keyboard.pressed("D") && player.collisions.x != 1){
    	player.translateX(distanceMoved);
-    player.velocity.setX(100);
+    player.velocity.setX(50);
     ball.rotateZ(-angleRotated);	 
   }
 
