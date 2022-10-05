@@ -7,42 +7,67 @@ import pti from 'puppeteer-to-istanbul';
 import puppeteer from 'puppeteer';
 import fs from 'fs'
 import chai from 'chai'
-import {
-  parse
-} from 'path';
-import {
-  dir
-} from 'console';
+import test from 'test'
+
 var expect = chai.expect;
-
+/**
+ * Highest Score
+ * @type : number
+ */
 let score = 100;
-
+/**
+ * player(ball)'s posisiton
+ * posX:X-coordinate,posY:Y-coordinate,posZ:Z-coordinate,
+ * @type : number
+ */
 let posX = 0;
-let posY = 0;
-let posZ = 0;
+let posY = 19;
+let posZ = 200;
+
+/**
+ * used to determine whether continue to jump
+ * Max continuos jumping count is 2
+ * @type : number
+ */
 let jumpCount = 0;
+
+/**
+ * Last jump time as milisecond => Date.Now()
+ * @type : number
+ */
 let lastJump = 0;
-const timeLimit = 1000;
-let cur_time = 0;
-let stepCount = 0;
+
+/**
+ * used to scrap Player's position data
+ * @type : UI Element
+ */
 let posElement = {};
-let highestElement = {};
-let posContent = {};
+/**
+ * used to scrap Player's highest score
+ * @type : UI Element
+ */
+let highestElement = undefined;
+/**
+ * Platform Index which automated user try to stand on
+ * @type : Number
+ */
+let targetPF = 0;
 
-const browser = await puppeteer.launch({
-  headless: false,
-});
-
-const page = await browser.newPage();
-await page.goto('https://webaverse-alan-cousin.netlify.app/')
-const f = await page.$("#highest")
-const text = await (await f.getProperty('textContent')).jsonValue()
-const platformSize = {
+/**
+ * Platform's size
+ * @type:Object{x:Number, y:Number, z:Number}
+ */
+const pfDefautSize = {
   x: 100,
   y: 40,
   z: 100
 };
-const platformPoses = [{
+
+/**
+ * Positions of first 3 platforms
+ * @type : Array<Vector3>
+ */
+const staticPFPoses = [{
     x: 100,
     y: 30,
     z: 0
@@ -56,12 +81,16 @@ const platformPoses = [{
     x: 0,
     y: 150,
     z: 0
-  },
+  }
 ]
+/**
+ * Key Event Template for dynamic appending 
+ * @type : Array<KeyEvent>
+ */
 const moveSteps = [{
     "type": "keyDown",
     "target": "main",
-    "key": "d"
+    "key": "a"
   },
   {
     "type": "keyUp",
@@ -71,7 +100,7 @@ const moveSteps = [{
   {
     "type": "keyDown",
     "target": "main",
-    "key": "a"
+    "key": "d"
   },
   {
     "type": "keyUp",
@@ -119,6 +148,31 @@ const moveSteps = [{
     "key": "x"
   }
 ]
+/**
+ * 
+ * @type : number
+ */
+const timeLimit = 1000;
+/**
+ * Task ID in Task Description
+ * 1 -> verify all movement
+ * 2 -> automate jump up to Platform 3
+ *   -> save highest score screen shot
+ * it will be changed by input "X" key event
+ * @type : number
+ */
+let taskID = 0;
+/**
+ * Represent current step's index
+ * @type : Number
+ */
+let stepCounter = 0;
+const browser = await puppeteer.launch({
+  headless: false,
+});
+const page = await browser.newPage();
+await page.goto('https://webaverse-alan-cousin.netlify.app/')
+
 
 
 class CoverageExtension extends PuppeteerRunnerExtension {
@@ -137,6 +191,7 @@ class CoverageExtension extends PuppeteerRunnerExtension {
       page.coverage.stopJSCoverage(),
       page.coverage.stopCSSCoverage(),
     ]);
+
     let totalBytes = 0;
     let usedBytes = 0;
     const coverage = [...jsCoverage, ...cssCoverage];
@@ -154,6 +209,8 @@ class CoverageExtension extends PuppeteerRunnerExtension {
   async beforeAllSteps(flow) {
     await super.beforeAllSteps(flow);
     await this.startCoverage();
+
+    /// create output directory
     const dir = './testOutputs';
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, {
@@ -165,44 +222,173 @@ class CoverageExtension extends PuppeteerRunnerExtension {
   }
 
   async beforeEachStep(step, flow) {
-    console.log("------------------------new step-------------------");
-    console.log(step);
+    console.log("------------------------new step---------------------");
     await super.beforeEachStep(step, flow);
-    console.log("Step Start Time : " + (Date.now() / 1000 - cur_time));
-    cur_time = Date.now() / 1000;
+    console.log(step);
+    stepCounter++;
+  }
+  verifyAllMovement() {
 
-    if (stepCount == 3) {
+  }
+  async afterEachStep(step, flow) {
+
+    await super.afterEachStep(step, flow);
+
+    // after navigate url, get UI Element
+    if (step.type == "navigate") {
       posElement = await page.$("#position")
       highestElement = await page.$("#highest")
     }
-
-    if (stepCount >= 3) {
-      //posContent = await (await posElement.getProperty('textContent')).jsonValue()
-      // const position = posContent.split(" ");
-      // positionX = parseFloat(position[1])
-      // positionY = parseFloat(position[2])
-      // positionZ = parseFloat(position[3])
-
-      //  console.log("Before Position = ", positionX, positionY, positionZ)
+    /// only process keyUp event
+    if (step.type != "keyUp") {
+      console.log("-------------------------End Step --------------------");
+      return;
+    }
+    if (step.key == "x") {
+      taskID++;
+      console.log("-------------------------End Step --------------------");
+      //return;
     }
 
-    //console.log("Step before Time : " + (Date.now() / 1000 - cur_time));
-    //cur_time = Date.now() / 1000;
+    /// save last position(previous position) of player before read new position
+    const posOldX = posX;
+    const posOldY = posY;
+    const posOldZ = posZ;
+    console.log("Player Position ->", posOldX, posOldY, posOldZ);
+    /// read position info of game player
+    const posContent = await (await posElement.getProperty('textContent')).jsonValue()
+    const positionAfter = posContent.split(" ");
+    posX = parseFloat(positionAfter[1]);
+    posY = parseFloat(positionAfter[2]);
+    posZ = parseFloat(positionAfter[3]);
+    console.log("Player Position ->", posX, posY, posZ);
 
+    if (taskID == 1) {
+
+      if (step.key == 'w') {
+        try {
+          expect(posOldZ).to.be.greaterThan(posZ)
+        } catch (e) {
+          console.log("'W' doesn't works properly.")
+          non_movable_direction = 1;
+
+        }
+      }
+
+      if (step.key == 's') {
+        try {
+          expect(posZ).to.be.greaterThan(posOldZ)
+
+        } catch (e) {
+          console.log("'s' doesn't works properly.")
+          non_movable_direction = 1;
+
+        }
+      }
+
+      if (step.key == 'a') {
+        try {
+          expect(posOldX).to.be.greaterThan(posX)
+        } catch (e) {
+          console.log("'A' doesn't works properly.")
+          non_movable_direction = 2;
+        }
+      }
+
+      if (step.key == 'd') {
+        try {
+          expect(posX).to.be.greaterThan(posOldX)
+
+        } catch (e) {
+          console.log("'D' doesn't works properly.")
+          non_movable_direction = 2;
+        }
+      }
+
+      if ((Date.now() - lastJump) > timeLimit) {
+        jumpCount = 0;
+      }
+
+      if (step.key == ' ') {
+        if (jumpCount < 2) {
+          try {
+            expect(posY).to.be.greaterThan(posOldY)
+            jumpCount++;
+            lastJump = Date.now();
+          } catch (e) {
+            console.log("jump failed")
+          }
+        } else {
+          console.log("Jumping is disable after double Jump.")
+        }
+
+      }
+
+      /*step.key == 'w' && test("'W' doesn't works properly.", () => {
+        expect(posOldZ).to.be.greaterThan(posZ);
+      });
+      step.key == 's' && test("'S' doesn't works properly.", () => {
+        expect(posZ).to.be.greaterThan(posOldZ);
+      });
+      step.key == 'a' && test("'A' doesn't works properly.", () => {
+        expect(posOldX).to.be.greaterThan(posX);
+      });
+      step.key == 'd' && test("'D' doesn't works properly.", () => {
+        expect(posX).to.be.greaterThan(posOldX);
+      });
+
+      (Date.now() - lastJump > timeLimit) && (jumpCount = 0);
+      (step.key == ' ' && jumpCount < 2) && test("Jumping doesn't works properly.", () => {
+        expect(posY).to.be.greaterThan(posOldY)
+        jumpCount++;
+        lastJump = Date.now();
+      });*/
+
+    } else if (taskID == 2) {
+      if (highestElement) {
+        /// read highest score info of game player
+        const text = await (await highestElement.getProperty('textContent')).jsonValue()
+        const highest = parseFloat(text.split(" ").pop());
+        /// if user achieved the highest score, there is captured auto-matically.
+        if (highest > score) {
+          score = highest;
+          page.screenshot({
+            path: `./testOutputs/{${score}}.png`
+          });
+        }
+      }
+      if (stepCounter == flow.steps.length) {
+        
+        const non_movable_direction = (posOldZ == posZ && (step.key == "w" || step.key == "s")) ? 1 : ((posX == posOldX && (step.key == "a" || step.key == "d")) ? 2 : 0);
+        this.movePlayer(flow, posX, posY, posZ, non_movable_direction);
+      }
+    }
+    console.log("-------------------------End Step --------------------");
   }
-  addStep(flow, direction, isJump) {
+
+  async afterAllSteps(flow) {
+    await this.stopCoverage();
+    await super.afterAllSteps(flow);
+    console.log('==========================End All Test Success================================');
+  }
+  /**
+   * add key event to test-flow
+   * @param {*} flow 
+   * @param {moviding direction of this event} direction 
+   * @param {does this event include jumping move?} isJump 
+   */
+  addKeyEvent(flow, direction, isJump) {
     console.log("Add Step " + direction);
     if (isJump) {
       flow.steps.push(moveSteps[8]);
+      flow.steps.push(moveSteps[9]);
       flow.steps.push(moveSteps[8]);
-     
-      
+      flow.steps.push(moveSteps[9]);
     }
     switch (direction) {
       case "stop":
         flow.steps.push(moveSteps[10]);
         flow.steps.push(moveSteps[11]);
-
         break;
       case "left":
         flow.steps.push(moveSteps[0]);
@@ -226,162 +412,62 @@ class CoverageExtension extends PuppeteerRunnerExtension {
     }
   }
 
-  moveToPlatform(flow, posX, posY, posZ, non_mv_dir) {
-    let obj_pf = 0;
 
-    // check height determine whether go to platform 3 or not.
-    if (posY < platformPoses[1].y + platformSize.y / 2) {
-      // Choose the closest platform between Platform 1 and Platform 2
-      const dist_pf1 = Math.pow(platformPoses[0].x - posX, 2) + Math.pow(platformPoses[0].z - posZ, 2);
-      const dist_pf2 = Math.pow(platformPoses[1].x - posX, 2) + Math.pow(platformPoses[1].z - posZ, 2);
-      obj_pf = dist_pf1 <= dist_pf2 ? 0 : 1;
-    } else if (posY < platformPoses[2].y) {
-      this.addStep(flow, "stop", false);
-      return false;
-      obj_pf = 2;
-    } else {
+  /**
+   * move player to target platform
+   * @param {step flow, @type:ObjectP{steps:Array<>} flow 
+   * @param {player position X} posX 
+   * @param {player position Y} posY 
+   * @param {player position Z} posZ 
+   * @param {Indicates a direction in which the user cannot move forward.} non_mv_dir 
+   * @returns 
+   */
+  movePlayer(flow, posX, posY, posZ, non_mv_dir) {
+
+    /// current target PF's index in static PF POSES
+    if (posY < staticPFPoses[1].y) {
+      const dist_pf1 = Math.pow(staticPFPoses[0].x - posX, 2) + Math.pow(staticPFPoses[0].z - posZ, 2);
+      const dist_pf2 = Math.pow(staticPFPoses[1].x - posX, 2) + Math.pow(staticPFPoses[1].z - posZ, 2);
+
+      targetPF = dist_pf1 <= dist_pf2 ? 0 : 1;
+    }
+
+    let distToPF = Math.sqrt(Math.pow(staticPFPoses[targetPF].x - posX, 2) + Math.pow(staticPFPoses[targetPF].z - posZ, 2));
+    if (distToPF < 10 && targetPF < 2) {
+      targetPF = 2;
+      distToPF = Math.sqrt(Math.pow(staticPFPoses[targetPF].x - posX, 2) + Math.pow(staticPFPoses[targetPF].z - posZ, 2));
+      console.log("Reach Movestep 2");
+    } else if (distToPF < 10 && targetPF == 2) {
       console.log("====================== Test Finished ============================");
       return false;
     }
-    // distance to closest platform basis on X,Z directoin
-    const distToPF = Math.sqrt(Math.pow(platformPoses[obj_pf].x - posX, 2) + Math.pow(platformPoses[obj_pf].z - posZ, 2));
-
-
+    console.log("Target Objective : ", targetPF);
     // radius of platform
-    const pf_radius = Math.sqrt(Math.pow(platformSize.x / 2, 2) + Math.pow(platformSize.z / 2, 2));
+    const pf_radius = Math.sqrt(Math.pow(pfDefautSize.x / 2, 2) + Math.pow(pfDefautSize.z / 2, 2));
 
-    console.log("distance:, radius, x-dist:, y-dist:", distToPF, pf_radius,Math.abs(posX - platformPoses[obj_pf].x), Math.abs(posZ - platformPoses[obj_pf].z));
+    console.log("distance:, radius, x-dist:, y-dist:", distToPF, pf_radius, Math.abs(posX - staticPFPoses[targetPF].x), Math.abs(posZ - staticPFPoses[targetPF].z));
     let isJump = false;
     // if player is enough close to objective platfrom, jump to platform
-    if (distToPF <= pf_radius) {
+    if (distToPF <= pf_radius && posY < staticPFPoses[targetPF].y) {
       isJump = true;
-      // this.addStep(flow, "jump");
-      //this.addStep(flow, "jump");
     }
-    console.log("Target Pos ;" + platformPoses[obj_pf].x + " " + platformPoses[obj_pf].y + " " + platformPoses[obj_pf].z);
-    if (non_mv_dir!= 2 && Math.abs(posX - platformPoses[obj_pf].x) > Math.abs(posZ - platformPoses[obj_pf].z)) {
-      if (posX < platformPoses[obj_pf].x) {
-        this.addStep(flow, "right", isJump);
-      } else if (posX > platformPoses[obj_pf].x) {
-        this.addStep(flow, "left", isJump);
+    console.log("Target Pos ;" + staticPFPoses[targetPF].x + " " + staticPFPoses[targetPF].y + " " + staticPFPoses[targetPF].z);
+    if ((non_mv_dir != 2) && (non_mv_dir == 1 || Math.abs(posX - staticPFPoses[targetPF].x) > Math.abs(posZ - staticPFPoses[targetPF].z))) {
+      if (posX < staticPFPoses[targetPF].x) {
+        this.addKeyEvent(flow, "right", isJump);
+      } else if (posX > staticPFPoses[targetPF].x) {
+        this.addKeyEvent(flow, "left", isJump);
       }
     } else {
-      if (posZ < platformPoses[obj_pf].z) {
-        this.addStep(flow, "down", isJump);
-      } else if (posZ > platformPoses[obj_pf].z) {
-        this.addStep(flow, "up", isJump);
+      if (posZ < staticPFPoses[targetPF].z) {
+        this.addKeyEvent(flow, "down", isJump);
+      } else if (posZ > staticPFPoses[targetPF].z) {
+        this.addKeyEvent(flow, "up", isJump);
       }
     }
     return true;
   }
 
-  async afterEachStep(step, flow) {
-    await super.afterEachStep(step, flow);
-
-    console.log("Step after Time : " + (Date.now() / 1000 - cur_time));
-    cur_time = Date.now() / 1000;
-    if (stepCount >= 4 && step.type == "keyUp") {
-      const posX_old = posX;
-      const posY_old = posY;
-      const posZ_old = posZ;
-
-      posContent = await (await posElement.getProperty('textContent')).jsonValue()
-      // const text = await (await highestElement.getProperty('textContent')).jsonValue()
-      // const highest = parseFloat(text.split(" ").pop());
-      const positionAfter = posContent.split(" ");
-      posX = parseFloat(positionAfter[1])
-      posY = parseFloat(positionAfter[2])
-      posZ = parseFloat(positionAfter[3])
-
-
-      
-
-      if (posY > score) {
-        score = posY;
-        page.screenshot({
-          path: `./testOutputs/{${score}}.png`
-        });
-      }
-
-      console.log("After Position", posX, posY, posZ)
-      let non_movable_direction = 0;
-      // key check
-      if ((step.type == 'keyUp') && (step.key == 'w')) {
-        try {
-          expect(posZ_old).to.be.greaterThan(posZ)
-          non_movable_direction = 1;
-        } catch (e) {
-          console.log("'W' doesn't works properly.")
-          non_movable_direction = 1;
-
-        }
-      }
-
-      if ((step.type == 'keyUp') && (step.key == 's')) {
-        try {
-          expect(posZ).to.be.greaterThan(posZ_old)
-          
-        } catch (e) {
-          console.log("'s' doesn't works properly.")
-          non_movable_direction = 1;
-
-        }
-      }
-
-      if ((step.type == 'keyUp') && (step.key == 'a')) {
-        try {
-          expect(posX_old).to.be.greaterThan(posX)
-        } catch (e) {
-          console.log("'A' doesn't works properly.")
-          non_movable_direction = 2;
-        }
-      }
-
-      if ((step.type == 'keyUp') && (step.key == 'd')) {
-        try {
-          expect(posX).to.be.greaterThan(posX_old)
-          
-        } catch (e) {
-          console.log("'D' doesn't works properly.")
-          non_movable_direction = 2;
-        }
-      }
-
-      if ((Date.now() - lastJump) > timeLimit) {
-        jumpCount = 0;
-      }
-
-      if ((step.type == 'keyDown') && (step.key == ' ')) {
-        if (jumpCount < 2) {
-          try {
-            expect(posY).to.be.greaterThan(posY) //check first space jump
-            jumpCount++;
-            lastJump = Date.now();
-          } catch (e) {
-            console.log("jump failed")
-          }
-        } else {
-          console.log("Jumping is disable after double Jump.")
-        }
-
-      }
-      if (flow.steps.length - 1 == stepCount)
-        this.moveToPlatform(flow, posX, posY, posZ, non_movable_direction );
-    }
-    expect(posY).to.be.greaterThan(-100) //check first space jump
-    console.log("Step End Time : " + (Date.now() / 1000 - cur_time));
-    cur_time = Date.now() / 1000;
-    console.log("///////////////////////////////////////////////////////End Step");
-
-    stepCount++; //count steps
-
-  }
-
-  async afterAllSteps(flow) {
-    await this.stopCoverage();
-    await super.afterAllSteps(flow);
-    console.log('Test Done.');
-  }
 }
 
 export const flow = {
@@ -399,7 +485,7 @@ export const flow = {
       "deviceScaleFactor": 1,
       "isMobile": false,
       "hasTouch": false,
-      "isLandscape": false
+      "isLandscape": true
     },
     {
       "type": "navigate",
@@ -409,7 +495,27 @@ export const flow = {
         "title": "Jumping Test"
       }],
       "url": "https://webaverse-alan-cousin.netlify.app/",
-      "timeout": 30000
+      "timeout": 90000
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "x"
+    },
+    {
+      "type": "keyUp",
+      "target": "main",
+      "key": "x"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": " "
+    },
+    {
+      "type": "keyUp",
+      "target": "main",
+      "key": " "
     },
     {
       "type": "keyDown",
@@ -421,6 +527,61 @@ export const flow = {
       "target": "main",
       "key": "a"
     },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "w"
+    },
+    {
+      "type": "keyUp",
+      "target": "main",
+      "key": "w"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "s"
+    },
+    {
+      "type": "keyUp",
+      "target": "main",
+      "key": "s"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "d"
+    },
+    {
+      "type": "keyUp",
+      "target": "main",
+      "key": "d"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": " "
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": " "
+    },
+    {
+      "type": "keyUp",
+      "target": "main",
+      "key": " "
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "x"
+    },
+    {
+      "type": "keyUp",
+      "target": "main",
+      "key": "x"
+    }
 
   ]
 }

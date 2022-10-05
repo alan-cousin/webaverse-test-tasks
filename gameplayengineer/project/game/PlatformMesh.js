@@ -10,9 +10,7 @@ THREE.PlatformMesh = function (geometry, material) {
 	this.clock = new THREE.Clock(true);
 
 	//determine velocity
-	if (allObstacles.length <= 5) {
-		this.velocity = 0;
-  } else if (allObstacles.length <= 8) {
+	if (allObstacles.length < 8) {
     this.velocity = 0;
 	} else if (allObstacles.length <= 10) {
 		this.velocity = (Math.random() * 0.25) + 0.25;
