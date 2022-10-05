@@ -226,10 +226,10 @@ class CoverageExtension extends PuppeteerRunnerExtension {
     await super.beforeEachStep(step, flow);
     console.log(step);
     stepCounter++;
-  }
-  verifyAllMovement() {
 
+    console.log("Player Position ->", posX, posY, posZ);
   }
+
   async afterEachStep(step, flow) {
 
     await super.afterEachStep(step, flow);
@@ -264,85 +264,32 @@ class CoverageExtension extends PuppeteerRunnerExtension {
     console.log("Player Position ->", posX, posY, posZ);
 
     if (taskID == 1) {
-
-      if (step.key == 'w') {
-        try {
-          expect(posOldZ).to.be.greaterThan(posZ)
-        } catch (e) {
-          console.log("'W' doesn't works properly.")
-          non_movable_direction = 1;
-
-        }
-      }
-
-      if (step.key == 's') {
-        try {
-          expect(posZ).to.be.greaterThan(posOldZ)
-
-        } catch (e) {
-          console.log("'s' doesn't works properly.")
-          non_movable_direction = 1;
-
-        }
-      }
-
-      if (step.key == 'a') {
-        try {
-          expect(posOldX).to.be.greaterThan(posX)
-        } catch (e) {
-          console.log("'A' doesn't works properly.")
-          non_movable_direction = 2;
-        }
-      }
-
-      if (step.key == 'd') {
-        try {
-          expect(posX).to.be.greaterThan(posOldX)
-
-        } catch (e) {
-          console.log("'D' doesn't works properly.")
-          non_movable_direction = 2;
-        }
-      }
-
-      if ((Date.now() - lastJump) > timeLimit) {
-        jumpCount = 0;
-      }
-
-      if (step.key == ' ') {
-        if (jumpCount < 2) {
-          try {
-            expect(posY).to.be.greaterThan(posOldY)
-            jumpCount++;
-            lastJump = Date.now();
-          } catch (e) {
-            console.log("jump failed")
-          }
-        } else {
-          console.log("Jumping is disable after double Jump.")
-        }
-
-      }
-
-      /*step.key == 'w' && test("'W' doesn't works properly.", () => {
+      
+      step.key == 'w' && test("'W' key movement test", () => {
         expect(posOldZ).to.be.greaterThan(posZ);
       });
-      step.key == 's' && test("'S' doesn't works properly.", () => {
+      step.key == 's' && test("'S' key movement test.", () => {
         expect(posZ).to.be.greaterThan(posOldZ);
       });
-      step.key == 'a' && test("'A' doesn't works properly.", () => {
+      step.key == 'a' && test("'A' key movement test", () => {
         expect(posOldX).to.be.greaterThan(posX);
       });
-      step.key == 'd' && test("'D' doesn't works properly.", () => {
+      step.key == 'd' && test("'D' key movement test", () => {
         expect(posX).to.be.greaterThan(posOldX);
       });
 
       (Date.now() - lastJump > timeLimit) && (jumpCount = 0);
-      (step.key == ' ' && jumpCount < 2) && test("Jumping doesn't works properly.", () => {
+      (step.key == ' ' && jumpCount >= 1  ) && test("Double Jumping test.", () => {
         expect(posY).to.be.greaterThan(posOldY)
         jumpCount++;
         lastJump = Date.now();
-      });*/
+      });
+      (step.key == ' ' && jumpCount < 1) && test("Jumping test.", () => {
+        expect(posY).to.be.greaterThan(posOldY)
+        jumpCount++;
+        lastJump = Date.now();
+      });
+      
 
     } else if (taskID == 2) {
       if (highestElement) {
@@ -510,12 +457,27 @@ export const flow = {
     {
       "type": "keyDown",
       "target": "main",
-      "key": " "
+      "key": "a"
     },
     {
       "type": "keyUp",
       "target": "main",
-      "key": " "
+      "key": "a"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "a"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "a"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "a"
     },
     {
       "type": "keyDown",
@@ -540,12 +502,52 @@ export const flow = {
     {
       "type": "keyDown",
       "target": "main",
+      "key": "w"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "w"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "w"
+    },
+    {
+      "type": "keyUp",
+      "target": "main",
+      "key": "w"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "s"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "s"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
       "key": "s"
     },
     {
       "type": "keyUp",
       "target": "main",
       "key": "s"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "d"
+    },
+    {
+      "type": "keyDown",
+      "target": "main",
+      "key": "d"
     },
     {
       "type": "keyDown",
