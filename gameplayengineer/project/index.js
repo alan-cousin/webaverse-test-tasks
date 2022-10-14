@@ -635,7 +635,7 @@ export const flow = {
         "url": "https://webaverse-alan-cousin.netlify.app/",
         "title": "Jumping Test"
       }],*/
-      "url": "http://localhost:8000/",
+      "url": "https://webaverse-alan-cousin.netlify.app/",
       "timeout": 0,
     },
     {
