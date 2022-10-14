@@ -438,6 +438,9 @@ class CoverageExtension extends PuppeteerRunnerExtension {
    */
   endMove() {
     console.log("endMove : ");
+    test("Stand on Third Platform", () => {
+      expect(playerPos.y).to.be.greaterThan(pfPoses[7]);
+    });
     taskID++;
   }
   /**
@@ -454,20 +457,34 @@ class CoverageExtension extends PuppeteerRunnerExtension {
    * @param {} flow 
    */
   moveToNearPF(flow) {
-    if (playerPos.x < (pfPoses[targetPF * 3] - pfDefautSize.x / 2)) {
-      this.addKeyEvent(flow, "right", false, true);
-      this.addKeyEvent(flow, "right", false, false);
+    const x_dist = Math.abs(pfPoses[targetPF * 3] - playerPos.x);
+    const z_dist = Math.abs(pfPoses[targetPF * 3 + 2] - playerPos.z);
+    let is_moved = false;
+    if (x_dist > z_dist && x_dist > pfDefautSize.x / 2) {
 
-    } else if (playerPos.x > (pfPoses[targetPF * 3] + pfDefautSize.x / 2)) {
-      this.addKeyEvent(flow, "left", false, true);
-      this.addKeyEvent(flow, "left", false, false);
-    } else if (playerPos.z < (pfPoses[targetPF * 3 + 2] - pfDefautSize.z / 2)) {
-      this.addKeyEvent(flow, "down", false, true);
-      this.addKeyEvent(flow, "down", false, false);
-    } else if (playerPos.z > (pfPoses[targetPF * 3 + 2] + pfDefautSize.z / 2)) {
-      this.addKeyEvent(flow, "up", false, true);
-      this.addKeyEvent(flow, "up", false, false);
+      if (playerPos.x <= (pfPoses[targetPF * 3] - pfDefautSize.x / 2)) {
+        this.addKeyEvent(flow, "right", false, true);
+        this.addKeyEvent(flow, "right", false, false);
+        is_moved = true;
+
+
+      } else if (playerPos.x >= (pfPoses[targetPF * 3] + pfDefautSize.x / 2)) {
+        this.addKeyEvent(flow, "left", false, true);
+        this.addKeyEvent(flow, "left", false, false);
+        is_moved = true;
+      }
+    } else if (z_dist > pfDefautSize.z / 2) {
+      if (playerPos.z < (pfPoses[targetPF * 3 + 2] - pfDefautSize.z / 2)) {
+        this.addKeyEvent(flow, "down", false, true);
+        this.addKeyEvent(flow, "down", false, false);
+        is_moved = true;
+      } else if (playerPos.z > (pfPoses[targetPF * 3 + 2] + pfDefautSize.z / 2)) {
+        this.addKeyEvent(flow, "up", false, true);
+        this.addKeyEvent(flow, "up", false, false);
+        is_moved = true;
+      }
     }
+    return is_moved;
   }
 
   moveToCentreTPF(flow) {
@@ -553,15 +570,17 @@ class CoverageExtension extends PuppeteerRunnerExtension {
       // if player stand on centre of Target Platform
       if (this.isCentreOfPF()) {
         console.log(" player stand on center of Target Platfrom");
+        if (targetPF == 2) {
+          this.endMove();
+        }
         // Find Next Target
         targetPF = this.findNextTarget();
         console.log("targetPF : " + targetPF);
         // if Target Platform is valid
-        if (targetPF < 3) {
+        if (targetPF < 4) {
           this.waitForNextStep(flow);
-        } else {
-          this.endMove();
         }
+
       } else {
         // Move To Centre of Target Platform
         console.log(" Move To Centre of Target Platform");
@@ -591,8 +610,7 @@ class CoverageExtension extends PuppeteerRunnerExtension {
             } else {
               console.log(" player should move to Target");
               // Move to Jumpable(nearest) Position
-
-              this.moveToNearPF(flow);
+              !this.moveToNearPF(flow) && this.waitForNextStep(flow);
             }
           }
         } else {
@@ -621,19 +639,20 @@ export const flow = {
       "download": 180000,
       "upload": 84375,
       "latency": 562.5
-    },/*
-    {
-      "type": "setViewport",
-      "width": 1920,
-      "height": 937,
-      "deviceScaleFactor": 1,
-      "isMobile": false,
-      "hasTouch": false,
-      "isLandscape": true
-    },*/
+    },
+    /*
+        {
+          "type": "setViewport",
+          "width": 1920,
+          "height": 937,
+          "deviceScaleFactor": 1,
+          "isMobile": false,
+          "hasTouch": false,
+          "isLandscape": true
+        },*/
     {
       "type": "navigate",
-   
+
       "url": "https://webaverse-alan-cousin.netlify.app/",
       "timeout": 0,
     },
