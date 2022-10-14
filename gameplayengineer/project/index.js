@@ -584,7 +584,7 @@ class CoverageExtension extends PuppeteerRunnerExtension {
             if (this.isOnBoundary()) {
               console.log(" player stand on boundary of Platform");
               // wait for Target 
-              this.waitForNextStep();
+              this.waitForNextStep(flow);
             } else {
               console.log(" player should move to Target");
               // Move to Jumpable(nearest) Position
