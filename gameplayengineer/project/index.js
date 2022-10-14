@@ -634,7 +634,7 @@ export const flow = {
     {
       "type": "navigate",
    
-      "url": "http://localhost:8000/",
+      "url": "https://webaverse-alan-cousin.netlify.app/",
       "timeout": 0,
     },
     {
