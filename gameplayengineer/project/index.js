@@ -157,7 +157,7 @@ const moveSteps = [{
  * 
  * @type : number
  */
-const timeLimit = 1000;
+const timeLimit = 2000;
 /**
  * Task ID in Task Description
  * 1 -> verify all movement
@@ -293,6 +293,7 @@ class CoverageExtension extends PuppeteerRunnerExtension {
       });
 
       (Date.now() - lastJump > timeLimit) && (jumpCount = 0);
+      console.log("Jump Count : " + jumpCount);
       (step.key == ' ' && jumpCount >= 1) && test("Double Jumping test.", () => {
         expect(playerPos.y).to.be.greaterThan(posOldY)
         jumpCount++;
@@ -382,7 +383,7 @@ class CoverageExtension extends PuppeteerRunnerExtension {
     const x_dist = pfPoses[targetPF * 3] - playerPos.x;
     const y_dist = pfPoses[targetPF * 3 + 2] - playerPos.z;
 
-    if (Math.sqrt(x_dist * x_dist + y_dist * y_dist) < 80) {
+    if (Math.sqrt(x_dist * x_dist + y_dist * y_dist) < 80 && Math.sqrt(x_dist * x_dist + y_dist * y_dist) > 40) {
       return true;
     }
     return false;
@@ -405,7 +406,7 @@ class CoverageExtension extends PuppeteerRunnerExtension {
         return false;
       if (playerPos.z < pfPoses[targetPF * 3 + 2] - pfDefautSize.z / 2 || playerPos.z > pfPoses[targetPF * 3 + 2] + pfDefautSize.z / 2)
         return false;
-      if (playerPos.y >= pfPoses[targetPF * 3 + 1] )
+      if (playerPos.y >= pfPoses[targetPF * 3 + 1])
         return true;
     }
     return false;
@@ -460,8 +461,7 @@ class CoverageExtension extends PuppeteerRunnerExtension {
     } else if (playerPos.x > (pfPoses[targetPF * 3] + pfDefautSize.x / 2)) {
       this.addKeyEvent(flow, "left", false, true);
       this.addKeyEvent(flow, "left", false, false);
-    }
-    if (playerPos.z < (pfPoses[targetPF * 3 + 2] - pfDefautSize.z / 2)) {
+    } else if (playerPos.z < (pfPoses[targetPF * 3 + 2] - pfDefautSize.z / 2)) {
       this.addKeyEvent(flow, "down", false, true);
       this.addKeyEvent(flow, "down", false, false);
     } else if (playerPos.z > (pfPoses[targetPF * 3 + 2] + pfDefautSize.z / 2)) {
@@ -471,22 +471,25 @@ class CoverageExtension extends PuppeteerRunnerExtension {
   }
 
   moveToCentreTPF(flow) {
+    const x_dist = Math.abs(pfPoses[targetPF * 3] - playerPos.x);
+    const z_dist = Math.abs(pfPoses[targetPF * 3 + 2] - playerPos.z);
+    if (x_dist > z_dist) {
+      if (playerPos.x < pfPoses[targetPF * 3]) {
+        this.addKeyEvent(flow, "right", false, true);
+        this.addKeyEvent(flow, "right", false, false);
 
-    if (playerPos.x < pfPoses[targetPF * 3]) {
-      this.addKeyEvent(flow, "right", false, true);
-      this.addKeyEvent(flow, "right", false, false);
-
-    } else if (playerPos.x > pfPoses[targetPF * 3]) {
-      this.addKeyEvent(flow, "left", false, true);
-      this.addKeyEvent(flow, "left", false, false);
-    }
-
-    if (playerPos.z < pfPoses[targetPF * 3 + 2]) {
-      this.addKeyEvent(flow, "down", false, true);
-      this.addKeyEvent(flow, "down", false, false);
-    } else if (playerPos.z > pfPoses[targetPF * 3 + 2]) {
-      this.addKeyEvent(flow, "up", false, true);
-      this.addKeyEvent(flow, "up", false, false);
+      } else if (playerPos.x > pfPoses[targetPF * 3]) {
+        this.addKeyEvent(flow, "left", false, true);
+        this.addKeyEvent(flow, "left", false, false);
+      }
+    } else {
+      if (playerPos.z < pfPoses[targetPF * 3 + 2]) {
+        this.addKeyEvent(flow, "down", false, true);
+        this.addKeyEvent(flow, "down", false, false);
+      } else if (playerPos.z > pfPoses[targetPF * 3 + 2]) {
+        this.addKeyEvent(flow, "up", false, true);
+        this.addKeyEvent(flow, "up", false, false);
+      }
     }
   }
   /**
@@ -495,31 +498,30 @@ class CoverageExtension extends PuppeteerRunnerExtension {
    */
   jumpToTarget(flow) {
     this.addKeyEvent(flow, "jump", false, true);
-    this.addKeyEvent(flow, "jump", false, false);
     this.addKeyEvent(flow, "jump", false, true);
     this.addKeyEvent(flow, "jump", false, false);
-    if (playerPos.x < pfPoses[targetPF * 3]) {
-      this.addKeyEvent(flow, "right", false, true);
-      this.addKeyEvent(flow, "right", false, true);
-      this.addKeyEvent(flow, "right", false, true);
-      this.addKeyEvent(flow, "right", false, false);
-    } else if (playerPos.x > pfPoses[targetPF * 3]) {
-      this.addKeyEvent(flow, "left", false, true);
-      this.addKeyEvent(flow, "left", false, true);
-      this.addKeyEvent(flow, "left", false, true);
-      this.addKeyEvent(flow, "left", false, false);
-    }
-
-    if (playerPos.z < pfPoses[targetPF * 3 + 2]) {
-      this.addKeyEvent(flow, "down", false, true);
-      this.addKeyEvent(flow, "down", false, true);
-      this.addKeyEvent(flow, "down", false, true);
-      this.addKeyEvent(flow, "down", false, false);
-    } else if (playerPos.z > pfPoses[targetPF * 3 + 2]) {
-      this.addKeyEvent(flow, "up", false, true);
-      this.addKeyEvent(flow, "up", false, true);
-      this.addKeyEvent(flow, "up", false, true);
-      this.addKeyEvent(flow, "up", false, false);
+    const x_dist = Math.abs(pfPoses[targetPF * 3] - playerPos.x);
+    const z_dist = Math.abs(pfPoses[targetPF * 3 + 2] - playerPos.z);
+    if (x_dist > z_dist) {
+      if (playerPos.x < pfPoses[targetPF * 3]) {
+        this.addKeyEvent(flow, "right", false, true);
+        this.addKeyEvent(flow, "right", false, true);
+        this.addKeyEvent(flow, "right", false, false);
+      } else if (playerPos.x > pfPoses[targetPF * 3]) {
+        this.addKeyEvent(flow, "left", false, true);
+        this.addKeyEvent(flow, "left", false, true);
+        this.addKeyEvent(flow, "left", false, false);
+      }
+    } else {
+      if (playerPos.z < pfPoses[targetPF * 3 + 2]) {
+        this.addKeyEvent(flow, "down", false, true);
+        this.addKeyEvent(flow, "down", false, true);
+        this.addKeyEvent(flow, "down", false, false);
+      } else if (playerPos.z > pfPoses[targetPF * 3 + 2]) {
+        this.addKeyEvent(flow, "up", false, true);
+        this.addKeyEvent(flow, "up", false, true);
+        this.addKeyEvent(flow, "up", false, false);
+      }
     }
   }
 
@@ -555,7 +557,7 @@ class CoverageExtension extends PuppeteerRunnerExtension {
         targetPF = this.findNextTarget();
         console.log("targetPF : " + targetPF);
         // if Target Platform is valid
-        if (targetPF < 4) {
+        if (targetPF < 3) {
           this.waitForNextStep(flow);
         } else {
           this.endMove();
@@ -569,6 +571,7 @@ class CoverageExtension extends PuppeteerRunnerExtension {
       console.log(" player dont't stand on Target Platfrom");
       // if player has target
       if (this.hasTarget()) {
+        targetPF = this.findNextTarget();
         console.log(" Target Platform is " + targetPF);
         // if Taraget Platform is approachable 
         if (this.isApproachableTF()) {
@@ -618,7 +621,7 @@ export const flow = {
       "download": 180000,
       "upload": 84375,
       "latency": 562.5
-    },
+    },/*
     {
       "type": "setViewport",
       "width": 1920,
@@ -627,14 +630,10 @@ export const flow = {
       "isMobile": false,
       "hasTouch": false,
       "isLandscape": true
-    },
+    },*/
     {
       "type": "navigate",
-      /*"assertedEvents": [{
-        "type": "navigation",
-        "url": "https://webaverse-alan-cousin.netlify.app/",
-        "title": "Jumping Test"
-      }],*/
+   
       "url": "http://localhost:8000/",
       "timeout": 0,
     },
@@ -755,6 +754,11 @@ export const flow = {
     },
     {
       "type": "keyDown",
+      "target": "main",
+      "key": " "
+    },
+    {
+      "type": "keyUp",
       "target": "main",
       "key": " "
     },
