@@ -17,12 +17,14 @@ var expect = chai.expect;
 let score = 100;
 /**
  * player(ball)'s posisiton
- * posX:X-coordinate,posY:Y-coordinate,posZ:Z-coordinate,
- * @type : number
+ * playerPos.x:X-coordinate,playerPos.y:Y-coordinate,playerPos.z:Z-coordinate,
+ * @type : {x:number, y:number, z:number}
  */
-let posX = 0;
-let posY = 19;
-let posZ = 200;
+let playerPos = {
+  x: 0,
+  y: 19,
+  z: 200
+};
 
 /**
  * used to determine whether continue to jump
@@ -41,7 +43,14 @@ let lastJump = 0;
  * used to scrap Player's position data
  * @type : UI Element
  */
-let posElement = {};
+let playerPosElement = {};
+
+/**
+ * used to scrap Player's position data
+ * @type : UI Element
+ */
+let pfPosElements = {};
+
 /**
  * used to scrap Player's highest score
  * @type : UI Element
@@ -67,22 +76,8 @@ const pfDefautSize = {
  * Positions of first 3 platforms
  * @type : Array<Vector3>
  */
-const staticPFPoses = [{
-    x: 100,
-    y: 30,
-    z: 0
-  },
-  {
-    x: -100,
-    y: 30,
-    z: 0
-  },
-  {
-    x: 0,
-    y: 150,
-    z: 0
-  }
-]
+let pfPoses = [];
+
 /**
  * Key Event Template for dynamic appending 
  * @type : Array<KeyEvent>
@@ -146,6 +141,16 @@ const moveSteps = [{
     "type": "keyUp",
     "target": "main",
     "key": "x"
+  },
+  {
+    "type": "keyDown",
+    "target": "main",
+    "key": "b"
+  },
+  {
+    "type": "keyUp",
+    "target": "main",
+    "key": "b"
   }
 ]
 /**
@@ -171,8 +176,7 @@ const browser = await puppeteer.launch({
   headless: false,
 });
 const page = await browser.newPage();
-await page.goto('https://webaverse-alan-cousin.netlify.app/')
-
+//await page.goto('http://localhost:8000/')
 
 
 class CoverageExtension extends PuppeteerRunnerExtension {
@@ -227,7 +231,7 @@ class CoverageExtension extends PuppeteerRunnerExtension {
     console.log(step);
     stepCounter++;
 
-    console.log("Player Position ->", posX, posY, posZ);
+    console.log("Player Position ->", playerPos.x, playerPos.y, playerPos.z);
   }
 
   async afterEachStep(step, flow) {
@@ -236,8 +240,9 @@ class CoverageExtension extends PuppeteerRunnerExtension {
 
     // after navigate url, get UI Element
     if (step.type == "navigate") {
-      posElement = await page.$("#position")
-      highestElement = await page.$("#highest")
+      playerPosElement = await page.$("#position")
+      highestElement = await page.$("#highest");
+      pfPosElements = await page.$("#Platform");
     }
     /// only process keyUp event
     if (step.type != "keyUp") {
@@ -251,46 +256,53 @@ class CoverageExtension extends PuppeteerRunnerExtension {
     }
 
     /// save last position(previous position) of player before read new position
-    const posOldX = posX;
-    const posOldY = posY;
-    const posOldZ = posZ;
-    console.log("Player Position ->", posOldX, posOldY, posOldZ);
+    const posOldX = playerPos.x;
+    const posOldY = playerPos.y;
+    const posOldZ = playerPos.z;
+    console.log("Old Position ->", posOldX, posOldY, posOldZ);
     /// read position info of game player
-    const posContent = await (await posElement.getProperty('textContent')).jsonValue()
+    const posContent = await (await playerPosElement.getProperty('textContent')).jsonValue()
     const positionAfter = posContent.split(" ");
-    posX = parseFloat(positionAfter[1]);
-    posY = parseFloat(positionAfter[2]);
-    posZ = parseFloat(positionAfter[3]);
-    console.log("Player Position ->", posX, posY, posZ);
+    playerPos.x = parseFloat(positionAfter[1]);
+    playerPos.y = parseFloat(positionAfter[2]);
+    playerPos.z = parseFloat(positionAfter[3]);
+    console.log("Player Position ->", playerPos.x, playerPos.y, playerPos.z);
 
+    const pfContent = await (await pfPosElements.getProperty('textContent')).jsonValue();
+
+    const pfPosArray = pfContent.split(" ");
+    pfPoses = [];
+    for (let i = 0; i < pfPosArray.length; i++) {
+      if (pfPosArray[i] != '')
+        pfPoses.push(parseFloat(pfPosArray[i]));
+    }
+    console.log(pfPoses);
     if (taskID == 1) {
-      
+
       step.key == 'w' && test("'W' key movement test", () => {
-        expect(posOldZ).to.be.greaterThan(posZ);
+        expect(posOldZ).to.be.greaterThan(playerPos.z);
       });
       step.key == 's' && test("'S' key movement test.", () => {
-        expect(posZ).to.be.greaterThan(posOldZ);
+        expect(playerPos.z).to.be.greaterThan(posOldZ);
       });
       step.key == 'a' && test("'A' key movement test", () => {
-        expect(posOldX).to.be.greaterThan(posX);
+        expect(posOldX).to.be.greaterThan(playerPos.x);
       });
       step.key == 'd' && test("'D' key movement test", () => {
-        expect(posX).to.be.greaterThan(posOldX);
+        expect(playerPos.x).to.be.greaterThan(posOldX);
       });
 
       (Date.now() - lastJump > timeLimit) && (jumpCount = 0);
-      (step.key == ' ' && jumpCount >= 1  ) && test("Double Jumping test.", () => {
-        expect(posY).to.be.greaterThan(posOldY)
+      (step.key == ' ' && jumpCount >= 1) && test("Double Jumping test.", () => {
+        expect(playerPos.y).to.be.greaterThan(posOldY)
         jumpCount++;
         lastJump = Date.now();
       });
       (step.key == ' ' && jumpCount < 1) && test("Jumping test.", () => {
-        expect(posY).to.be.greaterThan(posOldY)
+        expect(playerPos.y).to.be.greaterThan(posOldY)
         jumpCount++;
         lastJump = Date.now();
       });
-      
-
     } else if (taskID == 2) {
       if (highestElement) {
         /// read highest score info of game player
@@ -305,14 +317,12 @@ class CoverageExtension extends PuppeteerRunnerExtension {
         }
       }
       if (stepCounter == flow.steps.length) {
-        
-        const non_movable_direction = (posOldZ == posZ && (step.key == "w" || step.key == "s")) ? 1 : ((posX == posOldX && (step.key == "a" || step.key == "d")) ? 2 : 0);
-        this.movePlayer(flow, posX, posY, posZ, non_movable_direction);
+
+        this.move(flow);
       }
     }
     console.log("-------------------------End Step --------------------");
   }
-
   async afterAllSteps(flow) {
     await this.stopCoverage();
     await super.afterAllSteps(flow);
@@ -324,96 +334,280 @@ class CoverageExtension extends PuppeteerRunnerExtension {
    * @param {moviding direction of this event} direction 
    * @param {does this event include jumping move?} isJump 
    */
-  addKeyEvent(flow, direction, isJump) {
-    console.log("Add Step " + direction);
-    if (isJump) {
-      flow.steps.push(moveSteps[8]);
-      flow.steps.push(moveSteps[9]);
-      flow.steps.push(moveSteps[8]);
-      flow.steps.push(moveSteps[9]);
-    }
+  addKeyEvent(flow, direction, isJump, isDown) {
     switch (direction) {
       case "stop":
-        flow.steps.push(moveSteps[10]);
-        flow.steps.push(moveSteps[11]);
+        isDown ? flow.steps.push(moveSteps[10]) : flow.steps.push(moveSteps[11]);
         break;
       case "left":
-        flow.steps.push(moveSteps[0]);
-        flow.steps.push(moveSteps[1]);
+        isDown ? flow.steps.push(moveSteps[0]) : flow.steps.push(moveSteps[1]);
         break;
       case "right":
-        flow.steps.push(moveSteps[2]);
-        flow.steps.push(moveSteps[3]);
+        isDown ? flow.steps.push(moveSteps[2]) : flow.steps.push(moveSteps[3]);
         break;
       case "up":
-        flow.steps.push(moveSteps[4]);
-        flow.steps.push(moveSteps[5]);
+        isDown ? flow.steps.push(moveSteps[4]) : flow.steps.push(moveSteps[5]);
         break;
       case "down":
-        flow.steps.push(moveSteps[6]);
-        flow.steps.push(moveSteps[7]);
+        isDown ? flow.steps.push(moveSteps[6]) : flow.steps.push(moveSteps[7]);
         break;
-    }
-    if (isJump) {
-      //flow.steps.push(moveSteps[9]);
+      case "wait":
+        isDown ? flow.steps.push(moveSteps[12]) : flow.steps.push(moveSteps[13]);
+        break;
+      case "jump":
+        isDown ? flow.steps.push(moveSteps[8]) : flow.steps.push(moveSteps[9]);
+        break;
+
     }
   }
-
 
   /**
-   * move player to target platform
-   * @param {step flow, @type:ObjectP{steps:Array<>} flow 
-   * @param {player position X} posX 
-   * @param {player position Y} posY 
-   * @param {player position Z} posZ 
-   * @param {Indicates a direction in which the user cannot move forward.} non_mv_dir 
-   * @returns 
+   * check whether player has target platform or not
+   * @returns boolean
    */
-  movePlayer(flow, posX, posY, posZ, non_mv_dir) {
-
-    /// current target PF's index in static PF POSES
-    if (posY < staticPFPoses[1].y) {
-      const dist_pf1 = Math.pow(staticPFPoses[0].x - posX, 2) + Math.pow(staticPFPoses[0].z - posZ, 2);
-      const dist_pf2 = Math.pow(staticPFPoses[1].x - posX, 2) + Math.pow(staticPFPoses[1].z - posZ, 2);
-
-      targetPF = dist_pf1 <= dist_pf2 ? 0 : 1;
-    }
-
-    let distToPF = Math.sqrt(Math.pow(staticPFPoses[targetPF].x - posX, 2) + Math.pow(staticPFPoses[targetPF].z - posZ, 2));
-    if (distToPF < 10 && targetPF < 2) {
-      targetPF = 2;
-      distToPF = Math.sqrt(Math.pow(staticPFPoses[targetPF].x - posX, 2) + Math.pow(staticPFPoses[targetPF].z - posZ, 2));
-      console.log("Reach Movestep 2");
-    } else if (distToPF < 10 && targetPF == 2) {
-      console.log("====================== Test Finished ============================");
+  hasTarget() {
+    if (targetPF < 0 || targetPF >= 4) {
       return false;
     }
-    console.log("Target Objective : ", targetPF);
-    // radius of platform
-    const pf_radius = Math.sqrt(Math.pow(pfDefautSize.x / 2, 2) + Math.pow(pfDefautSize.z / 2, 2));
 
-    console.log("distance:, radius, x-dist:, y-dist:", distToPF, pf_radius, Math.abs(posX - staticPFPoses[targetPF].x), Math.abs(posZ - staticPFPoses[targetPF].z));
-    let isJump = false;
-    // if player is enough close to objective platfrom, jump to platform
-    if (distToPF <= pf_radius && posY < staticPFPoses[targetPF].y) {
-      isJump = true;
-    }
-    console.log("Target Pos ;" + staticPFPoses[targetPF].x + " " + staticPFPoses[targetPF].y + " " + staticPFPoses[targetPF].z);
-    if ((non_mv_dir != 2) && (non_mv_dir == 1 || Math.abs(posX - staticPFPoses[targetPF].x) > Math.abs(posZ - staticPFPoses[targetPF].z))) {
-      if (posX < staticPFPoses[targetPF].x) {
-        this.addKeyEvent(flow, "right", isJump);
-      } else if (posX > staticPFPoses[targetPF].x) {
-        this.addKeyEvent(flow, "left", isJump);
-      }
-    } else {
-      if (posZ < staticPFPoses[targetPF].z) {
-        this.addKeyEvent(flow, "down", isJump);
-      } else if (posZ > staticPFPoses[targetPF].z) {
-        this.addKeyEvent(flow, "up", isJump);
-      }
-    }
     return true;
   }
+  /**
+   * Check player can jump to target platform at current position
+   */
+  isJumpable() {
+    if (pfPoses[targetPF * 3 + 1] - playerPos.y > 210) {
+      return false;
+    }
+    const x_dist = pfPoses[targetPF * 3] - playerPos.x;
+    const y_dist = pfPoses[targetPF * 3 + 2] - playerPos.z;
+
+    if (Math.sqrt(x_dist * x_dist + y_dist * y_dist) < 80) {
+      return true;
+    }
+    return false;
+  }
+  /**
+   * check player can go to current target platform or not
+   */
+  isApproachableTF() {
+    // if player is too high
+    if (pfPoses[targetPF * 3 + 1] - playerPos.y < 210)
+      return true;
+    return false;
+  }
+  /**
+   * check whether player stand on taget platform or not
+   */
+  isPlayerOnTF() {
+    if (this.hasTarget()) {
+      if (playerPos.x < pfPoses[targetPF * 3] - pfDefautSize.x / 2 || playerPos.x > pfPoses[targetPF * 3] + pfDefautSize.x / 2)
+        return false;
+      if (playerPos.z < pfPoses[targetPF * 3 + 2] - pfDefautSize.z / 2 || playerPos.z > pfPoses[targetPF * 3 + 2] + pfDefautSize.z / 2)
+        return false;
+      if (playerPos.y >= pfPoses[targetPF * 3 + 1] + pfDefautSize.y / 2)
+        return true;
+    }
+    return false;
+  }
+  /**
+   * check whether player stand on centre of platform
+   * @returns boolean :
+   */
+  isCentreOfPF() {
+    if (playerPos.x < pfPoses[targetPF * 3] - 20 || playerPos.x > pfPoses[targetPF * 3] + 20)
+      return false;
+    if (playerPos.z < pfPoses[targetPF * 3 + 2] - 20 || playerPos.z > pfPoses[targetPF * 3 + 2] + 20)
+      return false;
+    if (playerPos.y >= pfPoses[targetPF * 3 + 1] + pfDefautSize.y / 2)
+      return true;
+    return false;
+  }
+  findNextTarget() {
+    let i = 0;
+    for (i = 0; i < pfPoses.length / 3; i++) {
+      if (playerPos.y < pfPoses[i * 3 + 1])
+
+        return i;
+    }
+    return i;
+  }
+  /**
+   * 
+   */
+  endMove() {
+    console.log("endMove : ");
+    taskID++;
+  }
+  /**
+   * 
+   */
+  waitForNextStep(flow) {
+    console.log("Target : ", targetPF);
+
+    this.addKeyEvent(flow, "wait", false, true);
+    this.addKeyEvent(flow, "wait", false, false);
+  }
+  /**
+   * add move key event to flow
+   * @param {} flow 
+   */
+  moveToNearPF(flow) {
+    if (playerPos.x < (pfPoses[targetPF * 3] - pfDefautSize.x / 2)) {
+      this.addKeyEvent(flow, "right", false, true);
+      this.addKeyEvent(flow, "right", false, false);
+
+    } else if (playerPos.x > (pfPoses[targetPF * 3] + pfDefautSize.x / 2)) {
+      this.addKeyEvent(flow, "left", false, true);
+      this.addKeyEvent(flow, "left", false, false);
+    }
+    if (playerPos.z < (pfPoses[targetPF * 3 + 2] - pfDefautSize.z / 2)) {
+      this.addKeyEvent(flow, "down", false, true);
+      this.addKeyEvent(flow, "down", false, false);
+    } else if (playerPos.z > (pfPoses[targetPF * 3 + 2] + pfDefautSize.z / 2)) {
+      this.addKeyEvent(flow, "up", false, true);
+      this.addKeyEvent(flow, "up", false, false);
+    }
+  }
+
+  moveToCentreTPF(flow) {
+
+    if (playerPos.x < pfPoses[targetPF * 3]) {
+      this.addKeyEvent(flow, "right", false, true);
+      this.addKeyEvent(flow, "right", false, false);
+
+    } else if (playerPos.x > pfPoses[targetPF * 3]) {
+      this.addKeyEvent(flow, "left", false, true);
+      this.addKeyEvent(flow, "left", false, false);
+    }
+
+    if (playerPos.z < pfPoses[targetPF * 3 + 2]) {
+      this.addKeyEvent(flow, "down", false, true);
+      this.addKeyEvent(flow, "down", false, false);
+    } else if (playerPos.z > pfPoses[targetPF * 3 + 2]) {
+      this.addKeyEvent(flow, "up", false, true);
+      this.addKeyEvent(flow, "up", false, false);
+    }
+  }
+  /**
+   * add jump key event to flow
+   * @param {*} flow 
+   */
+  jumpToTarget(flow) {
+    this.addKeyEvent(flow, "jump", false, true);
+    this.addKeyEvent(flow, "jump", false, false);
+    this.addKeyEvent(flow, "jump", false, true);
+    this.addKeyEvent(flow, "jump", false, false);
+    if (playerPos.x < pfPoses[targetPF * 3]) {
+      this.addKeyEvent(flow, "right", false, true);
+      this.addKeyEvent(flow, "right", false, true);
+      this.addKeyEvent(flow, "right", false, true);
+      this.addKeyEvent(flow, "right", false, false);
+    } else if (playerPos.x > pfPoses[targetPF * 3]) {
+      this.addKeyEvent(flow, "left", false, true);
+      this.addKeyEvent(flow, "left", false, true);
+      this.addKeyEvent(flow, "left", false, true);
+      this.addKeyEvent(flow, "left", false, false);
+    }
+
+    if (playerPos.z < pfPoses[targetPF * 3 + 2]) {
+      this.addKeyEvent(flow, "down", false, true);
+      this.addKeyEvent(flow, "down", false, true);
+      this.addKeyEvent(flow, "down", false, true);
+      this.addKeyEvent(flow, "down", false, false);
+    } else if (playerPos.z > pfPoses[targetPF * 3 + 2]) {
+      this.addKeyEvent(flow, "up", false, true);
+      this.addKeyEvent(flow, "up", false, true);
+      this.addKeyEvent(flow, "up", false, true);
+      this.addKeyEvent(flow, "up", false, false);
+    }
+  }
+
+  /**
+   * check whether player stand on boundary of Platform or not
+   * @returns boolean
+   */
+  isOnBoundary() {
+    if (targetPF < 1)
+      return false;
+    const currentPF = targetPF - 1;
+    const dist_x = pfDefautSize.x - Math.abs(pfPoses[currentPF * 3] - playerPos.x);
+    const dist_z = pfDefautSize.z - Math.abs(pfPoses[currentPF * 3 + 2] - playerPos.z);
+    if (dist_x > 0 && dist_x < 5)
+      return true;
+    if (dist_z > 0 && dist_z < 5)
+      return true;
+    return false;
+  }
+
+  /**
+   * Move To Target
+   */
+  move(flow) {
+
+    // if player stand on Target Platfrom
+    if (this.isPlayerOnTF()) {
+      console.log(" player stand on Target Platfrom : target " + targetPF);
+      // if player stand on centre of Target Platform
+      if (this.isCentreOfPF()) {
+        console.log(" player stand on center of Target Platfrom");
+        // Find Next Target
+        targetPF = this.findNextTarget();
+        console.log("targetPF : " + targetPF);
+        // if Target Platform is valid
+        if (targetPF < 4) {
+          this.waitForNextStep(flow);
+        } else {
+          this.endMove();
+        }
+      } else {
+        // Move To Centre of Target Platform
+        console.log(" Move To Centre of Target Platform");
+        this.moveToCentreTPF(flow);
+      }
+    } else {
+      console.log(" player dont't stand on Target Platfrom");
+      // if player has target
+      if (this.hasTarget()) {
+        console.log(" Target Platform is " + targetPF);
+        // if Taraget Platform is approachable 
+        if (this.isApproachableTF()) {
+          console.log(" Target Platform is approachable");
+          // if Target Platform is near to jump
+          if (this.isJumpable()) {
+            console.log(" Target Platform is near to jump");
+            // Jump to Target
+            this.jumpToTarget(flow);
+          } else {
+            console.log(" Target Platform is far to jump");
+            // if player stand on boundary of Platform
+            if (this.isOnBoundary()) {
+              console.log(" player stand on boundary of Platform");
+              // wait for Target 
+              this.waitForNextStep();
+            } else {
+              console.log(" player should move to Target");
+              // Move to Jumpable(nearest) Position
+
+              this.moveToNearPF(flow);
+            }
+          }
+        } else {
+          console.log(" Target Platform is not approachable ");
+          // Find Next Target
+          targetPF = this.findNextTarget();
+          this.waitForNextStep(flow);
+        }
+      } else {
+        console.log(" player has not Target Platfrom");
+        // Find Next Target
+        targetPF = this.findNextTarget();
+        this.waitForNextStep(flow);
+      }
+    }
+
+  }
+
 
 }
 
@@ -436,13 +630,13 @@ export const flow = {
     },
     {
       "type": "navigate",
-      "assertedEvents": [{
+      /*"assertedEvents": [{
         "type": "navigation",
         "url": "https://webaverse-alan-cousin.netlify.app/",
         "title": "Jumping Test"
-      }],
-      "url": "https://webaverse-alan-cousin.netlify.app/",
-      "timeout": 90000
+      }],*/
+      "url": "http://localhost:8000/",
+      "timeout": 0,
     },
     {
       "type": "keyDown",
