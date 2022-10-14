@@ -392,7 +392,7 @@ class CoverageExtension extends PuppeteerRunnerExtension {
    */
   isApproachableTF() {
     // if player is too high
-    if (pfPoses[targetPF * 3 + 1] - playerPos.y < 210)
+    if (pfPoses[targetPF * 3 + 1] - playerPos.y - pfDefautSize.y / 2 < 210)
       return true;
     return false;
   }
@@ -405,7 +405,7 @@ class CoverageExtension extends PuppeteerRunnerExtension {
         return false;
       if (playerPos.z < pfPoses[targetPF * 3 + 2] - pfDefautSize.z / 2 || playerPos.z > pfPoses[targetPF * 3 + 2] + pfDefautSize.z / 2)
         return false;
-      if (playerPos.y >= pfPoses[targetPF * 3 + 1] + pfDefautSize.y / 2)
+      if (playerPos.y >= pfPoses[targetPF * 3 + 1] )
         return true;
     }
     return false;
@@ -635,7 +635,7 @@ export const flow = {
         "url": "https://webaverse-alan-cousin.netlify.app/",
         "title": "Jumping Test"
       }],*/
-      "url": "https://webaverse-alan-cousin.netlify.app/",
+      "url": "http://localhost:8000/",
       "timeout": 0,
     },
     {
